@@ -1,0 +1,15 @@
+{
+  "name": "collin-claude-skills",
+  "version": "0.1.0",
+  "description": "Collin's Claude Code / Pi skills",
+  "keywords": [
+    "pi-package",
+    "skills"
+  ],
+  "license": "MIT",
+  "pi": {
+    "skills": [
+      "./plugins/github-pr-comment-reviewer/skills"
+    ]
+  }
+}
