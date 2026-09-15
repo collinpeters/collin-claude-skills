@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Reply to a GitHub PR comment thread
+# Reply to a GitHub PR review comment thread (immediately visible, not pending).
 # Usage: ./reply-to-comment.sh <THREAD_ID> <REPLY_BODY>
 # Output: JSON object with posted comment metadata (id, url, createdAt)
 
@@ -16,41 +16,38 @@ fi
 THREAD_ID="$1"
 REPLY_BODY="$2"
 
-# GraphQL mutation to post a reply
-query='
-mutation($threadId: ID!, $body: String!) {
-  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
-    comment {
-      id
-      url
-      createdAt
+# Resolve owner/repo, PR number, and the thread's first comment id from the
+# thread node id. We reply via REST (not addPullRequestReviewThreadReply,
+# which drafts into a never-submitted pending review).
+meta=$(gh api graphql -f query='
+query($id: ID!) {
+  node(id: $id) {
+    ... on PullRequestReviewThread {
+      pullRequest { number repository { nameWithOwner } }
+      comments(first: 1) { nodes { databaseId } }
     }
   }
-}'
-
-# Execute mutation. Stderr is intentionally not suppressed so transport-level
-# failures (auth, network, etc.) surface to the caller.
-json_output=$(gh api graphql \
-    -f query="$query" \
-    -F threadId="$THREAD_ID" \
-    -F body="$REPLY_BODY") || exit 1
+}' -F id="$THREAD_ID") || exit 1
 
 # GraphQL errors return HTTP 200 with an `errors` array, so `gh` exits 0 even
-# when the mutation was rejected (rate limit, validation, permissions, etc.).
-# Detect that explicitly.
-if echo "$json_output" | jq -e '.errors' >/dev/null 2>&1; then
-    echo "GraphQL errors from addPullRequestReviewThreadReply:" >&2
-    echo "$json_output" | jq '.errors' >&2
+# when the query was rejected. Detect that explicitly.
+if echo "$meta" | jq -e '.errors' >/dev/null 2>&1; then
+    echo "GraphQL errors resolving thread:" >&2
+    echo "$meta" | jq '.errors' >&2
     exit 1
 fi
 
-# Verify a comment was actually created. A null comment with no `errors` is
-# unexpected, but treat it as a failure rather than printing `null` to stdout.
-comment=$(echo "$json_output" | jq -c '.data.addPullRequestReviewThreadReply.comment // empty')
-if [ -z "$comment" ]; then
-    echo "Reply mutation returned no comment payload:" >&2
-    echo "$json_output" >&2
+repo=$(echo "$meta" | jq -r '.data.node.pullRequest.repository.nameWithOwner // empty')
+num=$(echo "$meta" | jq -r '.data.node.pullRequest.number // empty')
+cid=$(echo "$meta" | jq -r '.data.node.comments.nodes[0].databaseId // empty')
+if [ -z "$repo" ] || [ -z "$num" ] || [ -z "$cid" ]; then
+    echo "Could not resolve PR/comment from thread id $THREAD_ID:" >&2
+    echo "$meta" >&2
     exit 1
 fi
 
-echo "$comment"
+# POST an immediately-visible reply via the REST replies endpoint. Stderr is
+# intentionally not suppressed so transport/validation failures surface.
+gh api --method POST "repos/$repo/pulls/$num/comments/$cid/replies" \
+    -f body="$REPLY_BODY" \
+    --jq '{id: .id, url: .html_url, createdAt: .created_at}' || exit 1
