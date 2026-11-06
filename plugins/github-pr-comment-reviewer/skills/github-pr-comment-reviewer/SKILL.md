@@ -79,7 +79,7 @@ Threads where the action is straightforward and low-risk:
 - **Clear-cut fixes**: any fix — including a small logic change — that passes **every** check below:
   - **Clear**: the reviewer's concern has one obvious correct response; there are no competing approaches worth discussing
   - **Best practice**: the fix follows established language/framework conventions and the project's existing patterns
-  - **Simple**: the change is small and easy to reason about (well under the ~30 line / 3 file limit below)
+  - **Simple**: the change is small and easy to reason about
   - **Not a large deviation**: it does not reshape the design, behavior contract, or intent of the surrounding code
   - **No performance concerns**: it adds no meaningful runtime, memory, I/O, or query cost
 
