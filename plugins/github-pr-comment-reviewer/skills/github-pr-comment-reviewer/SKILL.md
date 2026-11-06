@@ -76,20 +76,28 @@ Read the comment bodies, file paths, and conversation context for every thread. 
 Threads where the action is straightforward and low-risk:
 
 - **Trivial fixes**: typo, spelling, grammar fixes in comments or strings; comment clarifications or doc wording; variable/function renames with local scope; formatting, whitespace, import ordering; dead code removal that is clearly unused; simple refactors with no behavior change
+- **Clear-cut fixes**: any fix — including a small logic change — that passes **every** check below:
+  - **Clear**: the reviewer's concern has one obvious correct response; there are no competing approaches worth discussing
+  - **Best practice**: the fix follows established language/framework conventions and the project's existing patterns
+  - **Simple**: the change is small and easy to reason about (well under the ~30 line / 3 file limit below)
+  - **Not a large deviation**: it does not reshape the design, behavior contract, or intent of the surrounding code
+  - **No performance concerns**: it adds no meaningful runtime, memory, I/O, or query cost
+
+  Examples: fixing an off-by-one the reviewer pointed out, adding a missing null/empty check, closing a leaked resource, correcting a wrong error message or log level, replacing a deprecated call with its documented replacement.
 - **Dismissals**: you evaluated the comment and decided not to implement it — the reviewer's suggestion doesn't apply, is already handled, or would make things worse. You will reply explaining your reasoning but make no code changes.
 
 #### Needs confirmation
 
-Threads where the user should weigh in before you proceed:
+Threads where the user should weigh in before you proceed. These always need confirmation, even when the fix looks clear-cut:
 
-- Logic changes (conditionals, loop behavior, control flow)
 - Public API changes (signatures, exports, interfaces)
 - New or changed dependencies
 - Security-relevant code (auth, crypto, input validation, permissions)
 - Changes touching more than ~30 lines or more than 3 files
 - Anything the reviewer flagged as controversial, or where thread discussion shows disagreement
 - Disagreeing with the reviewer on a non-trivial point
-- Anything ambiguous — **lean toward confirming when uncertain**
+
+Any other fix needs confirmation only if it fails one of the clear-cut checks above — e.g., a logic change with several reasonable approaches, a fix that changes observable behavior beyond the reviewer's concern, or one with a performance tradeoff. If you cannot confidently say a fix passes every clear-cut check, classify it as needs confirmation.
 
 ### Step 4: Present Upfront Summary
 

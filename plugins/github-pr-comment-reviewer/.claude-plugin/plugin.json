@@ -1,6 +1,6 @@
 {
   "name": "github-pr-comment-reviewer",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Systematically review and resolve GitHub pull request comments: classify threads, apply fixes, commit, and reply.",
   "author": {
     "name": "Collin Peters",
